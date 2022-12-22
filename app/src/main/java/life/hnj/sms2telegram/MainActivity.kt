@@ -19,13 +19,14 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.preference.PreferenceManager
 import kotlinx.coroutines.runBlocking
-import life.hnj.sms2telegram.smshandler.SMSHandleForegroundService
+import life.hnj.sms2telegram.handler.IncomingHandleForegroundService
+import life.hnj.sms2telegram.handler.TelegramMessageWorker
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class MainActivity : AppCompatActivity() {
-    val TAG = "MainActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
         val requestPermissionLauncher =
             registerForActivityResult(
@@ -59,18 +60,18 @@ class MainActivity : AppCompatActivity() {
 
         val toggle = findViewById<SwitchCompat>(R.id.enable_telegram_sync)
         val serviceIntent = Intent(
-            applicationContext, SMSHandleForegroundService::class.java
+            applicationContext, IncomingHandleForegroundService::class.java
         )
         if (sync2TgEnabled) {
-            checkPermission(Manifest.permission.RECEIVE_SMS, requestPermissionLauncher)
-            startSMSService(serviceIntent)
+            checkPermission(Manifest.permission.RECEIVE_SMS, requestPermissionLauncher, applicationContext)
+            startForegroundHandlerService(serviceIntent)
         }
         toggle.isChecked = sync2TgEnabled
         toggle.setOnCheckedChangeListener { _, isChecked ->
             runBlocking { setSync2TgEnabled(sync2TgEnabledKey, isChecked) }
             if (isChecked) {
-                checkPermission(Manifest.permission.RECEIVE_SMS, requestPermissionLauncher)
-                startSMSService(serviceIntent)
+                checkPermission(Manifest.permission.RECEIVE_SMS, requestPermissionLauncher, applicationContext)
+                startForegroundHandlerService(serviceIntent)
             } else {
                 applicationContext.stopService(serviceIntent)
                 Toast.makeText(applicationContext, "The service stopped", Toast.LENGTH_SHORT).show()
@@ -78,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startSMSService(serviceIntent: Intent) {
+    private fun startForegroundHandlerService(serviceIntent: Intent) {
         val alreadyStarted = applicationContext.startService(serviceIntent)
         if (alreadyStarted != null) {
             Log.d(TAG, "The service is already started")
@@ -99,21 +100,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkPermission(
-        perm: String,
-        requestPermissionLauncher: ActivityResultLauncher<String>
-    ) {
-        if (ContextCompat.checkSelfPermission(
-                applicationContext, perm
-            ) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            // You can directly ask for the permission.
-            // The registered ActivityResultCallback gets the result of this request.
-            requestPermissionLauncher.launch(perm)
-        }
-    }
-
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val toolbar = findViewById<Toolbar>(R.id.action_bar)
         toolbar.inflateMenu(R.menu.actionbar_menu)
@@ -127,6 +113,24 @@ class MainActivity : AppCompatActivity() {
                     action = Intent.CATEGORY_PREFERENCE
                 }
                 startActivity(intent)
+                true
+            }
+            R.id.action_test -> {
+                val toggle = findViewById<SwitchCompat>(R.id.enable_telegram_sync)
+                if (toggle.isChecked) {
+                    val store = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+                    TelegramMessageWorker.sendWork(store, applicationContext) {
+                        try {
+                            it.get().sendText("Test message")
+                        } catch (err: Exception) {
+                            Log.e(TAG, err.message, err)
+                            Toast.makeText(applicationContext, err.message, Toast.LENGTH_LONG).show()
+                            null
+                        }
+                    }
+                } else {
+                    Toast.makeText(applicationContext, "Enable sync to test messages", Toast.LENGTH_SHORT).show()
+                }
                 true
             }
             else -> {

@@ -2,6 +2,7 @@
     <string name="app_name">SMS2Telegram</string>
     <!-- Settings Activity Title -->
     <string name="title_activity_settings">Settings</string>
+    <string name="title_activity_test">Test</string>
 
     <!-- Preference Titles -->
     <string name="messages_header">Messages</string>
@@ -15,9 +16,13 @@
     <string name="telegram_bot_key">Telegram Bot Key</string>
     <string name="telegram_chat_id">Telegram Chat Id</string>
 
+    <string name="sms_queue">sms2telegram.data.sms.queue</string>
+    <string name="call_queue">sms2telegram.data.call.queue</string>
     <string name="enable_telegram_sync_key">sms2telegram.settings.tg.enabled</string>
     <string name="enable_telegram_bot_key_key">sms2telegram.settings.tg.bot.key</string>
     <string name="enable_telegram_chat_id_key">sms2telegram.settings.tg.chat.id</string>
+    <string name="enable_capture_calls_key">sms2telegram.settings.capture_calls</string>
     <string name="sim0_number">Number of Sim 1</string>
     <string name="sim1_number">Number of Sim 2</string>
+    <string name="capture_calls_title">Capture incoming calls</string>
 </resources>
